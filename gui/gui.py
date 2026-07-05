@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QSl
     QSizePolicy
 import serial
 import serial.tools.list_ports
-
+import numpy as np
 
 
 def findPort():
@@ -16,6 +16,15 @@ def findPort():
         if "USB" in port.description or "Arduino" in port.description or "ACM" in port.description:
             return port.device
     return None
+
+
+def calcDelay(targetDelay):
+    startDeleay = 2000
+    x = np.linspace(-6,6, 200)
+    sigmond = 1/(1+np.exp(-x))  #Broadcahst nupmy rechnet für alle Elementer der liste
+    delays = startDeleay - (sigmond*(startDeleay - targetDelay))
+
+    return [int(delay) for delay in delays]
 
 port = findPort()
 if port:
@@ -72,10 +81,12 @@ class MainWindow(QMainWindow):
             StepsPerRound = 200 * 8 #Schritte für eine Umdreheung mit Microschritten
             RPS = RPM / 60
             StepsPerSecond = RPS * StepsPerRound
-            delay_us = int(1_000_000 / (2 * StepsPerSecond))
+            delay_us = int(1_000_000 / StepsPerSecond)
+            delayList = calcDelay(delay_us)
+            data = ",".join(map(str, delayList))
 
             if port:
-                ser.write(f"DELAY:{delay_us}\n".encode())
+                ser.write(f"Delay:{data}\n".encode())
                 print("data send")
             else:
                 print("no port".encode())
